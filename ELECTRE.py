@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[23]:
+# In[136]:
 
 
 import numpy as np
 import pandas as pd
-from pprint import pprint
+from functools import reduce, partial
+#from pprint import pprint
 
 
 # We import the information from the Excel file
@@ -60,26 +61,63 @@ else:
 # ## Create the normalised decision matrix
 
 # For the normalisation part, there are many possible rules. The following options are available on this implementation: 
-# $$ x_{ij} \;\; = \;\; \frac{a_{ij}}{\sqrt{\sum_{i}^{N} a_{ij}}}$$
+# 
+# 1. Each entry is divided by the norm of criterion vector to which it belongs.
+#    
+#    $$ x_{ij} \;\; = \;\; \frac{a_{ij}}{\sqrt{\sum_{i}^{N} a_{ij}^{2}}} \;\; \forall i \in E_{row} \; \wedge \; \forall j \in E_{col} $$
+#     
+#     
+# 2. Using the maximum and minimun values of each criterion (column vector), the map goes as follows:
+#     
+#     $$ f: x \longrightarrow y \;\; | \;\; f(min(x)) \rightarrow 0 \; \wedge \; f(max(x)) \rightarrow 1 $$
+#     
+#     If the sense of optimisation is MIN:
+#     $$ x_{ij} \;\; = \frac{\max(r_{j}) - r_{ij}}{\max(r_{j}) - \min(r_{j})} \;\; \forall r_{j} \in Columns $$ 
+#     
+#     If the sense of optimisation is MAX:
+#     $$ x_{ij} \;\; = \frac{r_{ij} - \min(r_{j}) }{\max(r_{j}) - \min(r_{j})} \;\; \forall r_{j} \in Columns $$ 
+
+# ### Choose the normalisation rule
+
+# In[132]:
+
+
+normalisation_rule = 1
+
 
 # In[62]:
 
 
 n_table = table.copy()
 
-sq_sum_squares = table.apply(lambda y: np.sqrt(sum(x**2 for x in y)))
-sq_sum_squares = dict(sq_sum_squares)
+if normalisation_rule == 1:
+    sq_sum_squares = table.apply(lambda y: np.sqrt(sum(x**2 for x in y)))
+    sq_sum_squares = dict(sq_sum_squares)
 
-for column in table.columns:
-    f = (lambda y: lambda x: x/sq_sum_squares[y])(column) 
-    n_table[column] = table[column].map(f)
+    for column in table.columns:
+        f = (lambda y: lambda x: x/sq_sum_squares[y])(column) 
+        n_table[column] = table[column].map(f)
+        
+elif normalisation_rule == 2:
+    pass
+    
     
 n_table.head(5)
 
 
 # # EXPLORE MORE RULES !
 
-# 
+# In[135]:
+
+
+list(map(lambda x: x.lower(), n_table))
+
+
+# In[142]:
+
+
+partial(lambda x, y, z: f'{x}, {y}, {z}', 1)(2, '4')
+
 
 # ### Create the weighted normalised decision matrix
 
