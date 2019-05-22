@@ -27,22 +27,40 @@ table
 
 # ### We create a dictionnary to easily map from the criteria to their respective weights.
 
-# In[53]:
+# In[128]:
 
 
 criteria = table.columns
-weights  = [0.30, 0.1, 0.2, 0.15, 0.25]
+weights  = [0.3, 0.1, 0.2, 0.15, 0.25]
 
-if np.isclose(1, sum(weight for weight in weights)):
+if len(criteria) == len(weights) and np.isclose(1, sum(weight for weight in weights)):
     w_criteria = {criterion:weight for criterion, weight in zip(criteria, weights)}
 else:
-    print('Sum of weights must be equal to one!')
+    print(f'Number of criteria: {len(criteria)}, number of weights: {len(weights)}')
+    print(f'Sum of weights: {sum(weight for weight in weights)}')
     w_criteria = {criterion:0 for criterion in criteria}
+    raise Exception(f'A weight is needed for each criterion and the sum of weights must be equal to one!')
 
 w_criteria
 
 
+# ### We create a dictionary to access the optimization direction (min or max) for each criterion
+
+# In[131]:
+
+
+senses = [0, 1, 1, 1, 1] # O and 1 because they automatically map to complementary bool values. 
+
+if len(senses) == len(criteria):
+    s_criteria = {criterion:sense for criterion, sense in zip(criteria, senses)}
+else:
+    raise Exception(f'Specify a value (0 for min, 1 for max) for each one of the criteria : {list(criteria)}')
+
+
 # ## Create the normalised decision matrix
+
+# For the normalisation part, there are many possible rules. The following options are available on this implementation: 
+# $$ x_{ij} \;\; = \;\; \frac{a_{ij}}{\sqrt{\sum_{i}^{N} a_{ij}}}$$
 
 # In[62]:
 
@@ -59,8 +77,9 @@ for column in table.columns:
 n_table.head(5)
 
 
-# All entries have been normalised following rule : 
-# $$ x_{ij} \;\; = \;\; \frac{a_{ij}}{\sqrt{\sum_{i}^{N} a_{ij}}}$$
+# # EXPLORE MORE RULES !
+
+# 
 
 # ### Create the weighted normalised decision matrix
 

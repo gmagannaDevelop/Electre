@@ -1,0 +1,7 @@
+Aplicar todas las técnicas.
+
+Aplicar las técnicas a los resultados de las técnicas.
+El lugar que obtiene cada opción, de acuerdo a cada técnica es
+el valor que dicho objeto cobra para el criterio de la técnica correspondiente.
+
+
