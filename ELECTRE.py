@@ -207,7 +207,7 @@ side_by_side_histograms(table, n_table)
 
 # ### Create the weighted normalised decision matrix
 
-# In[63]:
+# In[67]:
 
 
 w_n_table = n_table.copy()
@@ -215,22 +215,24 @@ w_n_table = n_table.copy()
 for column in n_table.columns: 
     w_n_table[column] = n_table[column].map(lambda x: x*w_criteria[column])
     
-w_n_table.head(5)
+w_n_table.head()
 
 
 # ### Computation of the concordance matrix
 
-# In[93]:
+# In[69]:
 
 
 concordance_matrix = pd.DataFrame(columns=table.index, index=table.index)
 
-for phone in w_n_table.index:
-    for phone2 in w_n_table.index:
+for phone in n_table.index:
+    for phone2 in n_table.index:
         _sum = 0
-        for criterion in w_n_table.columns:
-            if w_n_table.loc[phone, criterion] >= w_n_table.loc[phone2, criterion]:
+        for criterion in n_table.columns:
+            if n_table.loc[phone, criterion] > n_table.loc[phone2, criterion]:
                 _sum += w_criteria[criterion]
+            elif np.isclose(n_table.loc[phone, criterion], n_table.loc[phone2, criterion]):
+                _sum += 0.5 * w_criteria[criterion]
         if phone == phone2:
             concordance_matrix.loc[phone, phone2] = 0
         else:
