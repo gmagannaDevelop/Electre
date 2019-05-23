@@ -339,21 +339,27 @@ d_d_matrix.head()
 
 # ### Agregated dominance matrix
 
-# In[146]:
+# In[152]:
 
 
 ADM = agregated_dominance_matrix(c_d_matrix, d_d_matrix)
+ADM
+
+
+# In[153]:
+
+
 overclasses = ADM.sum(axis=1)
 is_overclassed_by = ADM.sum(axis=0)
 
 
-# In[149]:
+# In[154]:
 
 
 overclasses.plot()
 
 
-# In[150]:
+# In[155]:
 
 
 is_overclassed_by.plot()
