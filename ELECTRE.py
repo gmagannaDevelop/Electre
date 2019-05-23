@@ -29,7 +29,7 @@ sns.set_style("darkgrid")
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[121]:
+# In[138]:
 
 
 def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
@@ -163,6 +163,28 @@ def discordance_matrix(frame: pd.core.frame.DataFrame) -> pd.core.frame.DataFram
     
     return _d_matrix
 ##
+
+def agregated_dominance_matrix(concordant_dominance_matrix: pd.core.frame.DataFrame,
+                               discordant_dominance_matrix: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+    """ Compute the agregated dominance matrix from the concordant dominance and the discordant dominance matrices. 
+    """
+    
+    if list(concordant_dominance_matrix.columns) != list(discordant_dominance_matrix.columns):
+        raise Exception('Cannot compute ADM from matrices with different columns')
+    if list(concordant_dominance_matrix.index) != list(discordant_dominance_matrix.index):
+        raise Exception('Cannot compute ADM from matrices with different rows')
+    
+    _a_matrix = pd.DataFrame(columns=concordant_dominance_matrix.columns, 
+                             index=concordant_dominance_matrix.index)
+    
+    for option in concordant_dominance_matrix.columns:
+        for option2 in concordant_dominance_matrix.index:
+            _a_matrix.loc[option, option2] = (lambda x, y: 1 if x and y else 0)(
+                                                concordant_dominance_matrix.loc[option, option2],
+                                                discordant_dominance_matrix.loc[option, option2])
+    return _a_matrix
+##
+    
 
 
 # We import the information from the Excel file
@@ -317,10 +339,18 @@ d_d_matrix.head()
 
 # ### Agregated dominance matrix
 
-# In[ ]:
+# In[146]:
 
 
+ADM = agregated_dominance_matrix(c_d_matrix, d_d_matrix)
+overclasses = ADM.sum(axis=1)
+is_overclassed_by = ADM.sum(axis=0)
 
+
+# In[147]:
+
+
+overclasses
 
 
 # In[123]:
