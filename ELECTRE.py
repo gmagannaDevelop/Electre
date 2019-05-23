@@ -29,7 +29,7 @@ sns.set_style("darkgrid")
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[96]:
+# In[121]:
 
 
 def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
@@ -159,7 +159,7 @@ def discordance_matrix(frame: pd.core.frame.DataFrame) -> pd.core.frame.DataFram
                     num = max(np.abs(negatives(diffs)))
                 denom = max(np.abs(diffs))
                 _discordance_index = num / denom
-        _d_matrix.loc[option, option2] = _discordance_index
+            _d_matrix.loc[option, option2] = _discordance_index
     
     return _d_matrix
 ##
@@ -264,7 +264,7 @@ side_by_side_histograms(table, n_table)
 
 # ### Create the weighted normalised decision matrix
 
-# In[67]:
+# In[118]:
 
 
 w_n_table = n_table.copy()
@@ -277,7 +277,7 @@ w_n_table.head()
 
 # ### Computation of the concordance matrix
 
-# In[97]:
+# In[119]:
 
 
 c_matrix = concordance_matrix(n_table, w_criteria)
@@ -286,54 +286,29 @@ c_matrix.head()
 
 # ### Computation of the discordance matrix
 
-# In[100]:
+# In[122]:
 
 
-for option in w_n_table.index:
-    
-    map(partial(lambda x, y: x - y, ))
+d_matrix = discordance_matrix(w_n_table)
+d_matrix.head()
 
 
-# In[107]:
+# ### Computation of the concordant dominance matrix 
+
+# In[126]:
 
 
+seuil = 0.5
+cdm_filter = partial(lambda x, y: 1 if y > x else 0, seuil)
+c_d_matrix = d_matrix.applymap(cdm_filter)
+c_d_matrix.head()
 
 
-
-# In[113]:
-
-
-frame = w_n_table
-_d_matrix = pd.DataFrame(columns=frame.index, index=frame.index)
-weights = w_criteria
-
-_discordance_index = 0
-
-negatives = lambda y: list(filter(lambda x: True if x < 0 else False, y))
-
-for option in frame.index:
-    for option2 in frame.index:
-        diffs = list(frame.loc[option, :] - frame.loc[option2, :])
-        if not any(diffs):
-            _discordance_index = 0
-        else:
-            n_diffs = negatives(diffs)
-            if not n_diffs:
-                num = 0
-            else:
-                num = max(np.abs(negatives(diffs)))
-            denom = max(np.abs(diffs))
-            _discordance_index = num / denom
-        _d_matrix.loc[option, option2] = _discordance_index
-        
-_d_matrix
+# In[123]:
 
 
-# ### Binary concordance set
-
-# In[106]:
-
-
+"""
+#doubt!
 binary_concordance_matrix = concordance_matrix.copy()
 
 sum_of_sums_of_columns = sum(concordance_matrix[column].sum() for column in concordance_matrix.columns)
@@ -343,6 +318,7 @@ c_bar = sum_of_sums_of_columns / non_diagonal_entries
 binary_concordance_matrix = concordance_matrix.applymap(lambda x: 1 if x > c_bar else 0)
 
 binary_concordance_matrix
+"""
 
 
 # In[ ]:
