@@ -347,59 +347,16 @@ overclasses = ADM.sum(axis=1)
 is_overclassed_by = ADM.sum(axis=0)
 
 
-# In[147]:
+# In[149]:
 
 
-overclasses
+overclasses.plot()
 
 
-# In[123]:
+# In[150]:
 
 
-"""
-#doubt!
-binary_concordance_matrix = concordance_matrix.copy()
-
-sum_of_sums_of_columns = sum(concordance_matrix[column].sum() for column in concordance_matrix.columns)
-non_diagonal_entries = concordance_matrix.shape[0]**2 - concordance_matrix.shape[0]
-c_bar = sum_of_sums_of_columns / non_diagonal_entries
-
-binary_concordance_matrix = concordance_matrix.applymap(lambda x: 1 if x > c_bar else 0)
-
-binary_concordance_matrix
-"""
-
-
-# In[ ]:
-
-
-negatives = lambda y: list(filter(lambda x: True if x < 0 else False, y))
-positives = lambda y: list(filter(lambda x: True if x > 0 else False, y))
-
-
-# In[91]:
-
-
-sorted(list(w_criteria.keys())) == sorted(list(n_table.columns)) 
-
-
-# In[88]:
-
-
-x = list(w_criteria.keys())
-x
-
-
-# In[89]:
-
-
-sorted(x)
-
-
-# In[90]:
-
-
-x
+is_overclassed_by.plot()
 
 
 # In[ ]:
