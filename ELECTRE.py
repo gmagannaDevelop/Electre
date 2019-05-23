@@ -1,18 +1,36 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[136]:
+# In[30]:
 
 
 import numpy as np
 import pandas as pd
+
 from functools import reduce, partial
-#from pprint import pprint
+from toolz.curried import compose
+from sklearn import preprocessing
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+# In[19]:
+
+
+plt.rcParams['figure.figsize'] = (15, 6)
+sns.set_style("darkgrid")
+
+
+# In[2]:
+
+
+dict_from_keys_vals = compose(dict, zip)
 
 
 # We import the information from the Excel file
 
-# In[51]:
+# In[3]:
 
 
 table = pd.read_excel('phones.xlsx')
@@ -20,7 +38,7 @@ table.index = table['ID']
 table = table.drop('ID', axis=1)
 
 
-# In[52]:
+# In[4]:
 
 
 table
@@ -28,18 +46,19 @@ table
 
 # ### We create a dictionnary to easily map from the criteria to their respective weights.
 
-# In[128]:
+# In[5]:
 
 
 criteria = table.columns
 weights  = [0.3, 0.1, 0.2, 0.15, 0.25]
 
-if len(criteria) == len(weights) and np.isclose(1, sum(weight for weight in weights)):
-    w_criteria = {criterion:weight for criterion, weight in zip(criteria, weights)}
+if len(criteria) == len(weights) and np.isclose(1, reduce(lambda x, y: x + y, weights, 0)):
+    w_criteria = dict_from_keys_vals(criteria, weights)
+    # w_criteria = {criterion:weight for criterion, weight in zip(criteria, weights)}
 else:
     print(f'Number of criteria: {len(criteria)}, number of weights: {len(weights)}')
     print(f'Sum of weights: {sum(weight for weight in weights)}')
-    w_criteria = {criterion:0 for criterion in criteria}
+    w_criteria = {}
     raise Exception(f'A weight is needed for each criterion and the sum of weights must be equal to one!')
 
 w_criteria
@@ -47,15 +66,17 @@ w_criteria
 
 # ### We create a dictionary to access the optimization direction (min or max) for each criterion
 
-# In[131]:
+# In[7]:
 
 
 senses = [0, 1, 1, 1, 1] # O and 1 because they automatically map to complementary bool values. 
 
 if len(senses) == len(criteria):
-    s_criteria = {criterion:sense for criterion, sense in zip(criteria, senses)}
+    s_criteria = dict_from_keys_vals(criteria, senses)
 else:
     raise Exception(f'Specify a value (0 for min, 1 for max) for each one of the criteria : {list(criteria)}')
+    
+s_criteria
 
 
 # ## Create the normalised decision matrix
@@ -67,7 +88,7 @@ else:
 #    $$ x_{ij} \;\; = \;\; \frac{a_{ij}}{\sqrt{\sum_{i}^{N} a_{ij}^{2}}} \;\; \forall i \in E_{row} \; \wedge \; \forall j \in E_{col} $$
 #     
 #     
-# 2. Using the maximum and minimun values of each criterion (column vector), the map goes as follows:
+# 2. Using the maximum AND minimun values of each criterion (column vector), as well the range between them. The map goes as follows:
 #     
 #     $$ f: x \longrightarrow y \;\; | \;\; f(min(x)) \rightarrow 0 \; \wedge \; f(max(x)) \rightarrow 1 $$
 #     
@@ -76,16 +97,28 @@ else:
 #     
 #     If the sense of optimisation is MAX:
 #     $$ x_{ij} \;\; = \frac{r_{ij} - \min(r_{j}) }{\max(r_{j}) - \min(r_{j})} \;\; \forall r_{j} \in Columns $$ 
+#     
+# 3. Using the maximum OR minimum values, depending on the optimisation criterion for each characteristic.
+#     
+#     For non-beneficial characteristics, which we want to minimise:
+#     $$ x_{ij} = \frac{\min(x_{j})}{x_{ij}} \;\; \forall j \in E_{col} $$
+#     
+#     For beneficial characteristics, which we want to maximise:
+#     $$ x_{ij} = \frac{x_{ij}}{\max(x_{j})} \;\; \forall j \in E_{col} $$
+#     
+# 4. Centering around zero and have all variances in the same order.
+# 
+#     SciKit-Learn's preprocessing.scale()
 
 # ### Choose the normalisation rule
 
-# In[132]:
+# In[34]:
 
 
-normalisation_rule = 1
+normalisation_rule = 2
 
 
-# In[62]:
+# In[35]:
 
 
 n_table = table.copy()
@@ -99,24 +132,59 @@ if normalisation_rule == 1:
         n_table[column] = table[column].map(f)
         
 elif normalisation_rule == 2:
-    pass
+    denom = dict(table.copy().apply(lambda x: x.max() - x.min()))
+    _min  = dict(table.copy().apply(lambda x: x.min()))
+    _max  = dict(table.copy().apply(lambda x: x.max()))
     
+    norm_min = lambda _key, element: (_max[_key] - element) / denom[_key]
+    norm_max = lambda _key, element: (element - _min[_key]) / denom[_key]
     
-n_table.head(5)
+    for column in table.columns:
+        if s_criteria[column]: # if True (==1), use the maximisation rule.  
+            n_table[column] = table[column].map(partial(norm_max, column))
+            
+        else: # if False (==0), use the minimisation rule.
+            n_table[column] = table[column].map(partial(norm_min, column))
+
+elif normalisation_rule == 3:
+    _min  = dict(table.copy().apply(lambda x: x.min()))
+    _max  = dict(table.copy().apply(lambda x: x.max()))
+    
+    norm_min = lambda _key, element: _min[_key] / element
+    norm_max = lambda _key, element: element / _max[_key]
+    
+    for column in table.columns:
+        if s_criteria[column]: # if True (==1), use the maximisation rule.  
+            n_table[column] = table[column].map(partial(norm_max, column))
+            
+        else: # if False (==0), use the minimisation rule.
+            n_table[column] = table[column].map(partial(norm_min, column))
+
+elif normalisation_rule == 4:
+    
+    for column in table.columns:
+        n_table[column] = preprocessing.scale(table[column])
+
+else:
+    raise Exception('Invalid Normalization Rule')
+    
+
+#sns.boxplot(n_table['Price (CAD)'])
+#plt.title(f'Normalisation rule: {normalisation_rule}')
 
 
-# # EXPLORE MORE RULES !
-
-# In[135]:
+# In[36]:
 
 
-list(map(lambda x: x.lower(), n_table))
-
-
-# In[142]:
-
-
-partial(lambda x, y, z: f'{x}, {y}, {z}', 1)(2, '4')
+for i, column in enumerate(n_table.columns):
+    plt.figure(i)
+    plt.title(f'Criteria: {column}')
+    plt.subplot(1, 2, 1)
+    sns.kdeplot(table[column])
+    plt.title(f'Before normalisation')
+    plt.subplot(1, 2, 2)
+    sns.kdeplot(n_table[column])
+    plt.title(f'After normalisation using rule: {normalisation_rule}')
 
 
 # ### Create the weighted normalised decision matrix
