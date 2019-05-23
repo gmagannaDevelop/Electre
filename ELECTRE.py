@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[30]:
+# In[70]:
 
 
 import numpy as np
@@ -10,6 +10,7 @@ import pandas as pd
 from functools import reduce, partial
 from toolz.curried import compose
 from sklearn import preprocessing
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -28,7 +29,7 @@ sns.set_style("darkgrid")
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[63]:
+# In[96]:
 
 
 def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
@@ -106,6 +107,62 @@ def side_by_side_histograms(table1: pd.core.frame.DataFrame,
         sns.kdeplot(table2[column])
         plt.title(right_title)
     plt.show()
+##
+
+def concordance_matrix(frame: pd.core.frame.DataFrame,
+                       weights: Dict[str,float]) -> pd.core.frame.DataFrame:
+    """ Compute a concordance matrix from a normalized matrix (frame parameter) and a weights dictionary.
+    Said weights dictionnary should map f:criterion -> weight, for all criteria contained in frame.columns 
+    """
+    
+    if not sorted(list(weights.keys())) == sorted(list(frame.columns)):
+        e = f'weights paramter\'s keys {sorted(list(weights.keys()))} do not match the normalized matrix\'s criteria (columns) {sorted(list(frame.columns))}'
+        raise Exception(e)
+    
+    _c_matrix = pd.DataFrame(columns=frame.index, index=frame.index)
+    
+    for option in frame.index:
+        for option2 in frame.index:
+            _sum = 0
+            for criterion in frame.columns:
+                if frame.loc[option, criterion] > frame.loc[option2, criterion]:
+                    _sum += weights[criterion]
+                elif np.isclose(frame.loc[option, criterion], frame.loc[option2, criterion]):
+                    _sum += 0.5 * weights[criterion]
+            if option == option2:
+                _c_matrix.loc[option, option2] = 0
+            else:
+                _c_matrix.loc[option, option2] = _sum
+    
+    return _c_matrix
+##
+
+def discordance_matrix(frame: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+    """ Compute a concordance matrix from a weighted normalized matrix (frame parameter). 
+    """
+    
+    _d_matrix = pd.DataFrame(columns=frame.index, index=frame.index)
+    
+    negatives = lambda y: list(filter(lambda x: True if x < 0 else False, y))
+
+    _discordance_index = 0
+    for option in frame.index:
+        for option2 in frame.index:
+            diffs = list(frame.loc[option, :] - frame.loc[option2, :])
+            if not any(diffs):
+                _discordance_index = 0
+            else:
+                n_diffs = negatives(diffs)
+                if not n_diffs:
+                    num = 0
+                else:
+                    num = max(np.abs(negatives(diffs)))
+                denom = max(np.abs(diffs))
+                _discordance_index = num / denom
+        _d_matrix.loc[option, option2] = _discordance_index
+    
+    return _d_matrix
+##
 
 
 # We import the information from the Excel file
@@ -220,25 +277,56 @@ w_n_table.head()
 
 # ### Computation of the concordance matrix
 
-# In[69]:
+# In[97]:
 
 
-concordance_matrix = pd.DataFrame(columns=table.index, index=table.index)
+c_matrix = concordance_matrix(n_table, w_criteria)
+c_matrix.head()
 
-for phone in n_table.index:
-    for phone2 in n_table.index:
-        _sum = 0
-        for criterion in n_table.columns:
-            if n_table.loc[phone, criterion] > n_table.loc[phone2, criterion]:
-                _sum += w_criteria[criterion]
-            elif np.isclose(n_table.loc[phone, criterion], n_table.loc[phone2, criterion]):
-                _sum += 0.5 * w_criteria[criterion]
-        if phone == phone2:
-            concordance_matrix.loc[phone, phone2] = 0
+
+# ### Computation of the discordance matrix
+
+# In[100]:
+
+
+for option in w_n_table.index:
+    
+    map(partial(lambda x, y: x - y, ))
+
+
+# In[107]:
+
+
+
+
+
+# In[113]:
+
+
+frame = w_n_table
+_d_matrix = pd.DataFrame(columns=frame.index, index=frame.index)
+weights = w_criteria
+
+_discordance_index = 0
+
+negatives = lambda y: list(filter(lambda x: True if x < 0 else False, y))
+
+for option in frame.index:
+    for option2 in frame.index:
+        diffs = list(frame.loc[option, :] - frame.loc[option2, :])
+        if not any(diffs):
+            _discordance_index = 0
         else:
-            concordance_matrix.loc[phone, phone2] = _sum
+            n_diffs = negatives(diffs)
+            if not n_diffs:
+                num = 0
+            else:
+                num = max(np.abs(negatives(diffs)))
+            denom = max(np.abs(diffs))
+            _discordance_index = num / denom
+        _d_matrix.loc[option, option2] = _discordance_index
         
-concordance_matrix
+_d_matrix
 
 
 # ### Binary concordance set
@@ -264,16 +352,29 @@ negatives = lambda y: list(filter(lambda x: True if x < 0 else False, y))
 positives = lambda y: list(filter(lambda x: True if x > 0 else False, y))
 
 
-# In[117]:
+# In[91]:
 
 
+sorted(list(w_criteria.keys())) == sorted(list(n_table.columns)) 
 
 
-
-# In[116]:
-
+# In[88]:
 
 
+x = list(w_criteria.keys())
+x
+
+
+# In[89]:
+
+
+sorted(x)
+
+
+# In[90]:
+
+
+x
 
 
 # In[ ]:
