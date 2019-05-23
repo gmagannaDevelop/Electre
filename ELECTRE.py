@@ -28,6 +28,86 @@ sns.set_style("darkgrid")
 dict_from_keys_vals = compose(dict, zip)
 
 
+# In[63]:
+
+
+def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
+    """ 
+    Read normalisation part of the notebook to understand the rules.
+    """
+    if normalisation_rule < 1 or normalisation_rule > 4:
+        print('Please specify a normalisation rule i from the interval [1,4]')
+        return None
+    
+    n_table = table.copy()
+
+    if normalisation_rule == 1:
+        sq_sum_squares = table.apply(lambda y: np.sqrt(sum(x**2 for x in y)))
+        sq_sum_squares = dict(sq_sum_squares)
+
+        for column in table.columns:
+            f = (lambda y: lambda x: x/sq_sum_squares[y])(column) 
+            n_table[column] = table[column].map(f)
+        
+    elif normalisation_rule == 2:
+        denom = dict(table.copy().apply(lambda x: x.max() - x.min()))
+        _min  = dict(table.copy().apply(lambda x: x.min()))
+        _max  = dict(table.copy().apply(lambda x: x.max()))
+    
+        norm_min = lambda _key, element: (_max[_key] - element) / denom[_key]
+        norm_max = lambda _key, element: (element - _min[_key]) / denom[_key]
+    
+        for column in table.columns:
+            if s_criteria[column]: # if True (==1), use the maximisation rule.  
+                n_table[column] = table[column].map(partial(norm_max, column))
+            
+            else: # if False (==0), use the minimisation rule.
+                n_table[column] = table[column].map(partial(norm_min, column))
+
+    elif normalisation_rule == 3:
+        _min  = dict(table.copy().apply(lambda x: x.min()))
+        _max  = dict(table.copy().apply(lambda x: x.max()))
+    
+        norm_min = lambda _key, element: _min[_key] / element
+        norm_max = lambda _key, element: element / _max[_key]
+    
+        for column in table.columns:
+            if s_criteria[column]: # if True (==1), use the maximisation rule.  
+                n_table[column] = table[column].map(partial(norm_max, column))
+            
+            else: # if False (==0), use the minimisation rule.
+                n_table[column] = table[column].map(partial(norm_min, column))
+
+    elif normalisation_rule == 4:
+        for column in table.columns:
+            n_table[column] = preprocessing.scale(table[column])
+
+    else:
+        print('Please specify a normalisation rule i from the interval [1,4]')
+        raise Exception('Invalid Normalization Rule')
+        
+    return n_table
+##
+
+
+def side_by_side_histograms(table1: pd.core.frame.DataFrame,
+                            table2: pd.core.frame.DataFrame,
+                            left_title: str = 'Before normalisation',
+                            right_title: str = 'After normalisation'):
+    """
+        WARNING: This function assumes the two pandas.Dataframes have the same columns.
+    """
+    for i, column in enumerate(table1.columns):
+        plt.figure(i)
+        plt.subplot(1, 2, 1)
+        sns.kdeplot(table1[column])
+        plt.title(left_title)
+        plt.subplot(1, 2, 2)
+        sns.kdeplot(table2[column])
+        plt.title(right_title)
+    plt.show()
+
+
 # We import the information from the Excel file
 
 # In[3]:
@@ -112,79 +192,17 @@ s_criteria
 
 # ### Choose the normalisation rule
 
-# In[34]:
+# In[51]:
 
 
-normalisation_rule = 2
+n_table = normalize_matrix(table, normalisation_rule=3)
+n_table.head()
 
 
-# In[35]:
+# In[64]:
 
 
-n_table = table.copy()
-
-if normalisation_rule == 1:
-    sq_sum_squares = table.apply(lambda y: np.sqrt(sum(x**2 for x in y)))
-    sq_sum_squares = dict(sq_sum_squares)
-
-    for column in table.columns:
-        f = (lambda y: lambda x: x/sq_sum_squares[y])(column) 
-        n_table[column] = table[column].map(f)
-        
-elif normalisation_rule == 2:
-    denom = dict(table.copy().apply(lambda x: x.max() - x.min()))
-    _min  = dict(table.copy().apply(lambda x: x.min()))
-    _max  = dict(table.copy().apply(lambda x: x.max()))
-    
-    norm_min = lambda _key, element: (_max[_key] - element) / denom[_key]
-    norm_max = lambda _key, element: (element - _min[_key]) / denom[_key]
-    
-    for column in table.columns:
-        if s_criteria[column]: # if True (==1), use the maximisation rule.  
-            n_table[column] = table[column].map(partial(norm_max, column))
-            
-        else: # if False (==0), use the minimisation rule.
-            n_table[column] = table[column].map(partial(norm_min, column))
-
-elif normalisation_rule == 3:
-    _min  = dict(table.copy().apply(lambda x: x.min()))
-    _max  = dict(table.copy().apply(lambda x: x.max()))
-    
-    norm_min = lambda _key, element: _min[_key] / element
-    norm_max = lambda _key, element: element / _max[_key]
-    
-    for column in table.columns:
-        if s_criteria[column]: # if True (==1), use the maximisation rule.  
-            n_table[column] = table[column].map(partial(norm_max, column))
-            
-        else: # if False (==0), use the minimisation rule.
-            n_table[column] = table[column].map(partial(norm_min, column))
-
-elif normalisation_rule == 4:
-    
-    for column in table.columns:
-        n_table[column] = preprocessing.scale(table[column])
-
-else:
-    raise Exception('Invalid Normalization Rule')
-    
-
-#sns.boxplot(n_table['Price (CAD)'])
-#plt.title(f'Normalisation rule: {normalisation_rule}')
-
-
-# In[36]:
-
-
-for i, column in enumerate(n_table.columns):
-    plt.figure(i)
-    plt.title(f'Criteria: {column}')
-    plt.subplot(1, 2, 1)
-    sns.kdeplot(table[column])
-    plt.title(f'Before normalisation')
-    plt.subplot(1, 2, 2)
-    sns.kdeplot(n_table[column])
-    plt.title(f'After normalisation using rule: {normalisation_rule}')
+side_by_side_histograms(table, n_table)
 
 
 # ### Create the weighted normalised decision matrix
