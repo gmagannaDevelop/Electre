@@ -295,13 +295,32 @@ d_matrix.head()
 
 # ### Computation of the concordant dominance matrix 
 
-# In[126]:
+# In[132]:
 
 
-seuil = 0.5
-cdm_filter = partial(lambda x, y: 1 if y > x else 0, seuil)
-c_d_matrix = d_matrix.applymap(cdm_filter)
+c_seuil = 0.5
+cdm_filter = partial(lambda x, y: 1 if y > x else 0, c_seuil)
+c_d_matrix = c_matrix.applymap(cdm_filter)
 c_d_matrix.head()
+
+
+# ### Computation of the disconcordant dominance matrix 
+
+# In[133]:
+
+
+d_seuil = d_matrix.mean().mean()
+cdm_filter = partial(lambda x, y: 1 if y < x else 0, d_seuil)
+d_d_matrix = d_matrix.applymap(cdm_filter)
+d_d_matrix.head()
+
+
+# ### Agregated dominance matrix
+
+# In[ ]:
+
+
+
 
 
 # In[123]:
