@@ -29,10 +29,12 @@ sns.set_style("darkgrid")
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[159]:
+# In[181]:
 
 
-def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
+def normalize_matrix(table: pd.core.frame.DataFrame, 
+                     direction: Dict[str, int], 
+                     normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
     """ 
     Read normalisation part of the notebook to understand the rules.
     """
@@ -49,6 +51,7 @@ def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0
         for column in table.columns:
             f = (lambda y: lambda x: x/sq_sum_squares[y])(column) 
             n_table[column] = table[column].map(f)
+        print(f'WARNING: normalisation rule {normalisation_rule} does not take into consideration MIN/MAX criteria')
         
     elif normalisation_rule == 2:
         denom = dict(table.copy().apply(lambda x: x.max() - x.min()))
@@ -59,7 +62,7 @@ def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0
         norm_max = lambda _key, element: (element - _min[_key]) / denom[_key]
     
         for column in table.columns:
-            if s_criteria[column]: # if True (==1), use the maximisation rule.  
+            if direction[column]: # if True (==1), use the maximisation rule.  
                 n_table[column] = table[column].map(partial(norm_max, column))
             
             else: # if False (==0), use the minimisation rule.
@@ -73,7 +76,7 @@ def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0
         norm_max = lambda _key, element: element / _max[_key]
     
         for column in table.columns:
-            if s_criteria[column]: # if True (==1), use the maximisation rule.  
+            if direction[column]: # if True (==1), use the maximisation rule.  
                 n_table[column] = table[column].map(partial(norm_max, column))
             
             else: # if False (==0), use the minimisation rule.
@@ -82,6 +85,7 @@ def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0
     elif normalisation_rule == 4:
         for column in table.columns:
             n_table[column] = preprocessing.scale(table[column])
+        print(f'WARNING: normalisation rule {normalisation_rule} does not take into consideration MIN/MAX criteria')
 
     else:
         print('Please specify a normalisation rule i from the interval [1,4]')
@@ -189,7 +193,7 @@ def agregated_dominance_matrix(concordant_dominance_matrix: pd.core.frame.DataFr
 
 # We import the information from the Excel file
 
-# In[160]:
+# In[194]:
 
 
 table = pd.read_excel('phones.xlsx')
@@ -197,7 +201,7 @@ table.index = table['ID']
 table = table.drop('ID', axis=1)
 
 
-# In[161]:
+# In[195]:
 
 
 table
@@ -205,7 +209,7 @@ table
 
 # ### We create a dictionnary to easily map from the criteria to their respective weights.
 
-# In[162]:
+# In[196]:
 
 
 criteria = table.columns
@@ -213,7 +217,6 @@ weights  = [0.3, 0.1, 0.2, 0.15, 0.25]
 
 if len(criteria) == len(weights) and np.isclose(1, reduce(lambda x, y: x + y, weights, 0)):
     w_criteria = dict_from_keys_vals(criteria, weights)
-    # w_criteria = {criterion:weight for criterion, weight in zip(criteria, weights)}
 else:
     print(f'Number of criteria: {len(criteria)}, number of weights: {len(weights)}')
     print(f'Sum of weights: {sum(weight for weight in weights)}')
@@ -225,7 +228,7 @@ w_criteria
 
 # ### We create a dictionary to access the optimization direction (min or max) for each criterion
 
-# In[163]:
+# In[197]:
 
 
 senses = [0, 1, 1, 1, 1] # O and 1 because they automatically map to complementary bool values. 
@@ -271,22 +274,24 @@ s_criteria
 
 # ### Choose the normalisation rule
 
-# In[164]:
+# In[226]:
 
 
-n_table = normalize_matrix(table, normalisation_rule=2)
+n_table = normalize_matrix(table, s_criteria, normalisation_rule=3)
 n_table.head()
 
 
-# In[165]:
+# Uncoment to see the effect of the normalisation on the criteria.
+
+# In[220]:
 
 
-side_by_side_histograms(table, n_table)
+# side_by_side_histograms(table, n_table)
 
 
 # ### Create the weighted normalised decision matrix
 
-# In[166]:
+# In[211]:
 
 
 w_n_table = n_table.copy()
@@ -299,7 +304,7 @@ w_n_table.head()
 
 # ### Computation of the concordance matrix
 
-# In[167]:
+# In[212]:
 
 
 c_matrix = concordance_matrix(n_table, w_criteria)
@@ -308,7 +313,7 @@ c_matrix.head()
 
 # ### Computation of the discordance matrix
 
-# In[168]:
+# In[213]:
 
 
 d_matrix = discordance_matrix(w_n_table)
@@ -317,7 +322,7 @@ d_matrix.head()
 
 # ### Computation of the concordant dominance matrix 
 
-# In[169]:
+# In[214]:
 
 
 c_seuil = 0.5
@@ -328,7 +333,7 @@ c_d_matrix.head()
 
 # ### Computation of the disconcordant dominance matrix 
 
-# In[170]:
+# In[215]:
 
 
 d_seuil = d_matrix.mean().mean()
@@ -339,28 +344,28 @@ d_d_matrix.head()
 
 # ### Agregated dominance matrix
 
-# In[171]:
+# In[216]:
 
 
 ADM = agregated_dominance_matrix(c_d_matrix, d_d_matrix)
 ADM
 
 
-# In[172]:
+# In[217]:
 
 
 overclasses = ADM.sum(axis=1)
 is_overclassed_by = ADM.sum(axis=0)
 
 
-# In[180]:
+# In[218]:
 
 
 overclasses.plot()
 overclasses
 
 
-# In[178]:
+# In[219]:
 
 
 is_overclassed_by.plot()
