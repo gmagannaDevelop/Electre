@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[70]:
+# In[156]:
 
 
 import numpy as np
@@ -16,20 +16,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# In[19]:
+# In[157]:
 
 
 plt.rcParams['figure.figsize'] = (15, 6)
 sns.set_style("darkgrid")
 
 
-# In[2]:
+# In[158]:
 
 
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[138]:
+# In[159]:
 
 
 def normalize_matrix(table: pd.core.frame.DataFrame, normalisation_rule: int = 0) -> pd.core.frame.DataFrame:
@@ -189,7 +189,7 @@ def agregated_dominance_matrix(concordant_dominance_matrix: pd.core.frame.DataFr
 
 # We import the information from the Excel file
 
-# In[3]:
+# In[160]:
 
 
 table = pd.read_excel('phones.xlsx')
@@ -197,7 +197,7 @@ table.index = table['ID']
 table = table.drop('ID', axis=1)
 
 
-# In[4]:
+# In[161]:
 
 
 table
@@ -205,7 +205,7 @@ table
 
 # ### We create a dictionnary to easily map from the criteria to their respective weights.
 
-# In[5]:
+# In[162]:
 
 
 criteria = table.columns
@@ -225,7 +225,7 @@ w_criteria
 
 # ### We create a dictionary to access the optimization direction (min or max) for each criterion
 
-# In[7]:
+# In[163]:
 
 
 senses = [0, 1, 1, 1, 1] # O and 1 because they automatically map to complementary bool values. 
@@ -271,14 +271,14 @@ s_criteria
 
 # ### Choose the normalisation rule
 
-# In[51]:
+# In[164]:
 
 
-n_table = normalize_matrix(table, normalisation_rule=3)
+n_table = normalize_matrix(table, normalisation_rule=2)
 n_table.head()
 
 
-# In[64]:
+# In[165]:
 
 
 side_by_side_histograms(table, n_table)
@@ -286,7 +286,7 @@ side_by_side_histograms(table, n_table)
 
 # ### Create the weighted normalised decision matrix
 
-# In[118]:
+# In[166]:
 
 
 w_n_table = n_table.copy()
@@ -299,7 +299,7 @@ w_n_table.head()
 
 # ### Computation of the concordance matrix
 
-# In[119]:
+# In[167]:
 
 
 c_matrix = concordance_matrix(n_table, w_criteria)
@@ -308,7 +308,7 @@ c_matrix.head()
 
 # ### Computation of the discordance matrix
 
-# In[122]:
+# In[168]:
 
 
 d_matrix = discordance_matrix(w_n_table)
@@ -317,7 +317,7 @@ d_matrix.head()
 
 # ### Computation of the concordant dominance matrix 
 
-# In[132]:
+# In[169]:
 
 
 c_seuil = 0.5
@@ -328,7 +328,7 @@ c_d_matrix.head()
 
 # ### Computation of the disconcordant dominance matrix 
 
-# In[133]:
+# In[170]:
 
 
 d_seuil = d_matrix.mean().mean()
@@ -339,30 +339,32 @@ d_d_matrix.head()
 
 # ### Agregated dominance matrix
 
-# In[152]:
+# In[171]:
 
 
 ADM = agregated_dominance_matrix(c_d_matrix, d_d_matrix)
 ADM
 
 
-# In[153]:
+# In[172]:
 
 
 overclasses = ADM.sum(axis=1)
 is_overclassed_by = ADM.sum(axis=0)
 
 
-# In[154]:
+# In[180]:
 
 
 overclasses.plot()
+overclasses
 
 
-# In[155]:
+# In[178]:
 
 
 is_overclassed_by.plot()
+is_overclassed_by
 
 
 # In[ ]:
