@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[156]:
+# In[1]:
 
 
 import numpy as np
 import pandas as pd
+import subprocess
 
 from functools import reduce, partial
 from toolz.curried import compose
@@ -16,21 +17,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# In[157]:
+# In[2]:
 
 
 plt.rcParams['figure.figsize'] = (15, 6)
 sns.set_style("darkgrid")
 
 
-# In[158]:
+# In[3]:
 
 
 dict_from_keys_vals = compose(dict, zip)
 
 
-# In[181]:
+# In[4]:
 
+
+def save_as_image(df: pd.core.frame.DataFrame, name: str):
+    df.to_html(name)
+    subprocess.call(f'wkhtmltoimage -f png --width 0 {name} {name}.png', shell=True)
 
 def normalize_matrix(table: pd.core.frame.DataFrame, 
                      direction: Dict[str, int], 
@@ -193,7 +198,7 @@ def agregated_dominance_matrix(concordant_dominance_matrix: pd.core.frame.DataFr
 
 # We import the information from the Excel file
 
-# In[194]:
+# In[5]:
 
 
 table = pd.read_excel('phones.xlsx')
@@ -201,20 +206,27 @@ table.index = table['ID']
 table = table.drop('ID', axis=1)
 
 
-# In[195]:
+# In[6]:
 
 
-table
+save_as_image(table, 'raw_data')
 
 
 # ### We create a dictionnary to easily map from the criteria to their respective weights.
 
-# In[196]:
+# In[24]:
 
 
 criteria = table.columns
-weights  = [0.3, 0.1, 0.2, 0.15, 0.25]
+weights  = [
+    3/11.5,
+    1/11.5, 
+    2.5/11.5, 
+    1.5/11.5, 
+    3.5/11.5
+]
 
+# 3/11,5 1/11,5 2,5/11,5 1,5/11,5 3,5/11,3
 if len(criteria) == len(weights) and np.isclose(1, reduce(lambda x, y: x + y, weights, 0)):
     w_criteria = dict_from_keys_vals(criteria, weights)
 else:
@@ -228,7 +240,7 @@ w_criteria
 
 # ### We create a dictionary to access the optimization direction (min or max) for each criterion
 
-# In[197]:
+# In[25]:
 
 
 senses = [0, 1, 1, 1, 1] # O and 1 because they automatically map to complementary bool values. 
@@ -274,16 +286,17 @@ s_criteria
 
 # ### Choose the normalisation rule
 
-# In[226]:
+# In[28]:
 
 
-n_table = normalize_matrix(table, s_criteria, normalisation_rule=3)
+n_table = normalize_matrix(table, s_criteria, normalisation_rule=2)
 n_table.head()
+n_table.to_html('normalised.html')
 
 
 # Uncoment to see the effect of the normalisation on the criteria.
 
-# In[220]:
+# In[29]:
 
 
 # side_by_side_histograms(table, n_table)
@@ -291,7 +304,7 @@ n_table.head()
 
 # ### Create the weighted normalised decision matrix
 
-# In[211]:
+# In[30]:
 
 
 w_n_table = n_table.copy()
@@ -300,76 +313,88 @@ for column in n_table.columns:
     w_n_table[column] = n_table[column].map(lambda x: x*w_criteria[column])
     
 w_n_table.head()
+w_n_table.to_html('weighted_normalised_decision_matrix.html')
 
 
 # ### Computation of the concordance matrix
 
-# In[212]:
+# In[31]:
 
 
 c_matrix = concordance_matrix(n_table, w_criteria)
 c_matrix.head()
+c_matrix.to_html('concordance_matrix.html')
 
 
 # ### Computation of the discordance matrix
 
-# In[213]:
+# In[32]:
 
 
 d_matrix = discordance_matrix(w_n_table)
 d_matrix.head()
+d_matrix.to_html('discordance_matrix.html')
 
 
 # ### Computation of the concordant dominance matrix 
 
-# In[214]:
+# In[33]:
 
 
 c_seuil = 0.5
 cdm_filter = partial(lambda x, y: 1 if y > x else 0, c_seuil)
 c_d_matrix = c_matrix.applymap(cdm_filter)
+c_d_matrix.to_html('concordant_dominance_matrix.html')
 c_d_matrix.head()
 
 
 # ### Computation of the disconcordant dominance matrix 
 
-# In[215]:
+# In[34]:
 
 
 d_seuil = d_matrix.mean().mean()
 cdm_filter = partial(lambda x, y: 1 if y < x else 0, d_seuil)
 d_d_matrix = d_matrix.applymap(cdm_filter)
+d_d_matrix.to_html('discordant_dominance_matrix.html')
 d_d_matrix.head()
 
 
 # ### Agregated dominance matrix
 
-# In[216]:
+# In[35]:
 
 
 ADM = agregated_dominance_matrix(c_d_matrix, d_d_matrix)
+ADM.to_html('agregated_dominance_matrix.html')
 ADM
 
 
-# In[217]:
+# In[36]:
 
 
 overclasses = ADM.sum(axis=1)
 is_overclassed_by = ADM.sum(axis=0)
 
 
-# In[218]:
+# In[37]:
 
 
 overclasses.plot()
 overclasses
 
 
-# In[219]:
+# In[38]:
 
 
 is_overclassed_by.plot()
 is_overclassed_by
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:
